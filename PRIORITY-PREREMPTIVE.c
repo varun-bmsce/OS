@@ -2,12 +2,13 @@
 
 struct Process {
     int pid, at, bt, pr, ct, wt, tat, rt;
+    int isCompleted; // Flag to check if process is completed
 };
 
-void sortByPriority(struct Process p[], int n) {
+void sortByArrival(struct Process p[], int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = i + 1; j < n; j++) {
-            if (p[i].pr > p[j].pr || (p[i].pr == p[j].pr && p[i].at > p[j].at)) {
+            if (p[i].at > p[j].at) {
                 struct Process temp = p[i];
                 p[i] = p[j];
                 p[j] = temp;
@@ -17,26 +18,46 @@ void sortByPriority(struct Process p[], int n) {
 }
 
 void findPriorityScheduling(struct Process p[], int n) {
-    sortByPriority(p, n);
-    int time = 0;
-    for (int i = 0; i < n; i++) {
-        if (time < p[i].at) {
-            time = p[i].at;
+    sortByArrival(p, n);
+    int time = 0, completed = 0;
+    float totalWT = 0, totalTAT = 0;
+    
+    while (completed < n) {
+        int idx = -1, highestPriority = 9999;
+        
+        for (int i = 0; i < n; i++) {
+            if (p[i].at <= time && p[i].isCompleted == 0) {
+                if (p[i].pr < highestPriority) {
+                    highestPriority = p[i].pr;
+                    idx = i;
+                }
+            }
         }
-        p[i].rt = time - p[i].at;
-        time += p[i].bt;
-        p[i].ct = time;
-        p[i].tat = p[i].ct - p[i].at;
-        p[i].wt = p[i].tat - p[i].bt;
+        
+        if (idx == -1) {
+            time++; // CPU idle
+        } else {
+            p[idx].rt = time - p[idx].at;
+            time += p[idx].bt;
+            p[idx].ct = time;
+            p[idx].tat = p[idx].ct - p[idx].at;
+            p[idx].wt = p[idx].tat - p[idx].bt;
+            p[idx].isCompleted = 1;
+            
+            totalWT += p[idx].wt;
+            totalTAT += p[idx].tat;
+            completed++;
+        }
     }
-}
-
-void printProcesses(struct Process p[], int n) {
+    
     printf("PID\tAT\tBT\tPR\tCT\tTAT\tWT\tRT\n");
     for (int i = 0; i < n; i++) {
         printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
                p[i].pid, p[i].at, p[i].bt, p[i].pr, p[i].ct, p[i].tat, p[i].wt, p[i].rt);
     }
+    
+    printf("\nAverage Turnaround Time: %.2f\n", totalTAT / n);
+    printf("Average Waiting Time: %.2f\n", totalWT / n);
 }
 
 int main() {
@@ -50,10 +71,9 @@ int main() {
         p[i].pid = i + 1;
         printf("Process %d: ", i + 1);
         scanf("%d %d %d", &p[i].at, &p[i].bt, &p[i].pr);
+        p[i].isCompleted = 0;
     }
     
     findPriorityScheduling(p, n);
-    printProcesses(p, n);
-    
     return 0;
 }
