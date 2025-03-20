@@ -7,10 +7,11 @@ struct Process {
 
 void findPreemptivePriorityScheduling(struct Process p[], int n) {
     int completed = 0, time = 0, min_idx = -1;
-    int is_completed[100] = {0};
-
+    float totalWT = 0, totalTAT = 0;
+    
     for (int i = 0; i < n; i++) {
         p[i].remaining = p[i].bt;
+        p[i].rt = -1;
     }
 
     while (completed != n) {
@@ -18,7 +19,7 @@ void findPreemptivePriorityScheduling(struct Process p[], int n) {
         min_idx = -1;
         
         for (int i = 0; i < n; i++) {
-            if (p[i].at <= time && !is_completed[i] && p[i].pr < min_priority) {
+            if (p[i].at <= time && p[i].remaining > 0 && p[i].pr < min_priority) {
                 min_priority = p[i].pr;
                 min_idx = i;
             }
@@ -29,7 +30,7 @@ void findPreemptivePriorityScheduling(struct Process p[], int n) {
             continue;
         }
         
-        if (p[min_idx].remaining == p[min_idx].bt) {
+        if (p[min_idx].rt == -1) {
             p[min_idx].rt = time - p[min_idx].at;
         }
         
@@ -38,20 +39,22 @@ void findPreemptivePriorityScheduling(struct Process p[], int n) {
         
         if (p[min_idx].remaining == 0) {
             completed++;
-            is_completed[min_idx] = 1;
             p[min_idx].ct = time;
             p[min_idx].tat = p[min_idx].ct - p[min_idx].at;
             p[min_idx].wt = p[min_idx].tat - p[min_idx].bt;
+            totalWT += p[min_idx].wt;
+            totalTAT += p[min_idx].tat;
         }
     }
-}
-
-void printProcesses(struct Process p[], int n) {
+    
     printf("PID\tAT\tBT\tPR\tCT\tTAT\tWT\tRT\n");
     for (int i = 0; i < n; i++) {
         printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
                p[i].pid, p[i].at, p[i].bt, p[i].pr, p[i].ct, p[i].tat, p[i].wt, p[i].rt);
     }
+    
+    printf("\nAverage Turnaround Time: %.2f\n", totalTAT / n);
+    printf("Average Waiting Time: %.2f\n", totalWT / n);
 }
 
 int main() {
@@ -68,7 +71,5 @@ int main() {
     }
     
     findPreemptivePriorityScheduling(p, n);
-    printProcesses(p, n);
-    
     return 0;
 }
